@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addReferenceBtn = document.getElementById('addReference');
     const referencesContainer = document.getElementById('referencesContainer');
     const orderForm = document.getElementById('orderForm');
+    let lastFocusedItem = null;
 
     // Update total quantity
     function updateTotalQuantity() {
@@ -18,6 +19,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateTotalQuantity();
 
+    const removeReferenceBtn = document.getElementById('removeReference');
+
+    referencesContainer.addEventListener('focusin', function(e) {
+        const item = e.target.closest('.reference-item');
+        if (item) {
+            if (lastFocusedItem && lastFocusedItem !== item) {
+                lastFocusedItem.classList.remove('focused');
+            }
+            lastFocusedItem = item;
+            item.classList.add('focused');
+        }
+    });
+
+    referencesContainer.addEventListener('focusout', function(e) {
+        const item = e.target.closest('.reference-item');
+        if (item && item === lastFocusedItem) {
+            const hasFocusedChild = item.contains(document.activeElement);
+            if (!hasFocusedChild) {
+                item.classList.remove('focused');
+            }
+        }
+    });
+
     // Add new reference input
     addReferenceBtn.addEventListener('click', function() {
         const referenceItem = document.createElement('div');
@@ -26,18 +50,43 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="text" class="reference" placeholder="Référence de monture" required oninput="this.value = this.value.toUpperCase()">
             <input type="number" class="quantity" placeholder="Quantité" min="1" value="1">
             <input type="number" class="discount" placeholder="Remise" min="0" step="0.01">
-            <button type="button" class="remove-btn">Supprimer</button>
         `;
-        referencesContainer.appendChild(referenceItem);
+
+        if (lastFocusedItem && referencesContainer.contains(lastFocusedItem)) {
+            lastFocusedItem.insertAdjacentElement('beforebegin', referenceItem);
+        } else {
+            referencesContainer.insertBefore(referenceItem, referencesContainer.firstChild);
+        }
+
+        const firstInput = referenceItem.querySelector('.reference');
+        if (firstInput) {
+            firstInput.focus();
+        }
+
         updateTotalQuantity();
     });
 
-    // Remove reference input
-    referencesContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-btn')) {
-            e.target.parentElement.remove();
-            updateTotalQuantity();
+    // Remove the focused reference input or clear the first one if only one remains
+    removeReferenceBtn.addEventListener('click', function() {
+        const referenceItems = referencesContainer.querySelectorAll('.reference-item');
+        if (referenceItems.length > 1) {
+            if (lastFocusedItem && referencesContainer.contains(lastFocusedItem)) {
+                lastFocusedItem.remove();
+            } else {
+                referenceItems[referenceItems.length - 1].remove();
+            }
+            lastFocusedItem = null;
+        } else if (referenceItems.length === 1) {
+            const firstItem = referenceItems[0];
+            firstItem.querySelectorAll('input').forEach(input => {
+                if (input.classList.contains('quantity')) {
+                    input.value = '1';
+                } else {
+                    input.value = '';
+                }
+            });
         }
+        updateTotalQuantity();
     });
 
     // Update total on quantity change

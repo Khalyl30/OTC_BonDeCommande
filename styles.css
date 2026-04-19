@@ -76,9 +76,20 @@ input[type="text"], input[type="email"], input[type="number"] {
 
 .reference-item {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: stretch;
     margin-bottom: 10px;
     gap: 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.reference-item.focused {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.12);
 }
 
 .reference, .quantity, .discount {
@@ -86,6 +97,15 @@ input[type="text"], input[type="email"], input[type="number"] {
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+    min-width: 0;
+}
+
+.reference {
+    flex: 2 1 0;
+}
+
+.quantity, .discount {
+    flex: 1 1 0;
 }
 
 .remove-btn {
@@ -117,6 +137,18 @@ input[type="text"], input[type="email"], input[type="number"] {
 
 #addReference:hover {
     background-color: #218838;
+}
+
+.reference-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#removeReference {
+    width: 100%;
+    margin-top: 0;
 }
 
 button[type="submit"] {
