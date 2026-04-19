@@ -1,0 +1,199 @@
+/* Mobile-first CSS */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-size: 14px;
+}
+
+.container {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.company-header {
+    text-align: left;
+    margin-bottom: 15px;
+    font-size: 12px;
+}
+.company-header strong {
+    font-size: 20px;
+    font-weight: bolder;
+}
+
+.company-header p {
+    margin: 5px 0;
+    line-height: 1.4;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+.section {
+    margin-bottom: 15px;
+}
+
+h2 {
+    color: #555;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+    font-size: 16px;
+    margin: 15px 0 10px 0;
+}
+
+label {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 3px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+input[type="text"], input[type="email"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.reference-item {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    gap: 8px;
+}
+
+.reference, .quantity, .discount {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.remove-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.remove-btn:hover {
+    background-color: #c82333;
+}
+
+#addReference {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+#addReference:hover {
+    background-color: #218838;
+}
+
+button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    margin-top: 15px;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Tablet styles */
+@media (min-width: 768px) {
+    body {
+        padding: 20px;
+        font-size: 16px;
+    }
+
+    .container {
+        max-width: 600px;
+        padding: 20px;
+    }
+
+    .logo-image {
+        max-height: 100px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+
+    .reference-item {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .reference {
+        flex: 2;
+    }
+
+    .quantity, .discount {
+        flex: 1;
+    }
+
+    .remove-btn {
+        margin-top: 0;
+        flex-shrink: 0;
+    }
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
+    body {
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 600px;
+    }
+
+    .logo-image {
+        max-height: 120px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+}
