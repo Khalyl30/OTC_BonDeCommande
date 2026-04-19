@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const referenceItem = document.createElement('div');
         referenceItem.className = 'reference-item';
         referenceItem.innerHTML = `
-            <input type="text" class="reference" placeholder="Référence de monture" required oninput="this.value = this.value.toUpperCase()">
+            <input type="text" class="reference" placeholder="Référence de monture" oninput="this.value = this.value.toUpperCase()">
             <input type="number" class="quantity" placeholder="Quantité" min="1" value="1">
             <input type="number" class="discount" placeholder="Remise" min="0" step="0.01">
         `;
@@ -56,11 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
             lastFocusedItem.insertAdjacentElement('beforebegin', referenceItem);
         } else {
             referencesContainer.insertBefore(referenceItem, referencesContainer.firstChild);
-        }
-
-        const firstInput = referenceItem.querySelector('.reference');
-        if (firstInput) {
-            firstInput.focus();
         }
 
         updateTotalQuantity();
@@ -150,16 +145,20 @@ function generateDocument(clientName, clientAddress, clientEmail, orderDate, ite
     const totalQuantity = items.reduce((sum, item) => sum + (item.quantity ? item.quantity : 0), 0);
 
     let tableLeftHTML = '<table style="width: 100%; border-collapse: collapse; margin-right: 10px; height: 100%; table-layout: fixed;"><tr style="border: 1px solid black; height: 38px;"><th style="border: 1px solid black; padding: 4px;">Référence</th><th style="border: 1px solid black; padding: 4px;">Quantité</th><th style="border: 1px solid black; padding: 4px;">Remise</th></tr>';
+    function formatQuantity(quantity) {
+        return quantity ? `x ${quantity}` : '';
+    }
+
     for (let i = 0; i < 21; i++) {
         const item = leftItems[i];
-        tableLeftHTML += '<tr style="border: 1px solid black; height: 38px;"><td style="border: 1px solid black; padding: 4px;">' + (item ? item.reference : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.quantity ? item.quantity : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.discount ? item.discount.toFixed(2) : '') + '</td></tr>';
+        tableLeftHTML += '<tr style="border: 1px solid black; height: 38px;"><td style="border: 1px solid black; padding: 4px;">' + (item ? item.reference : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.quantity ? formatQuantity(item.quantity) : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.discount ? item.discount.toFixed(2) : '') + '</td></tr>';
     }
     tableLeftHTML += '</table>';
 
     let tableRightHTML = '<table style="width: 100%; border-collapse: collapse; height: 100%; table-layout: fixed;"><tr style="border: 1px solid black; height: 38px;"><th style="border: 1px solid black; padding: 4px;">Référence</th><th style="border: 1px solid black; padding: 4px;">Quantité</th><th style="border: 1px solid black; padding: 4px;">Remise</th></tr>';
     for (let i = 0; i < 21; i++) {
         const item = rightItems[i];
-        tableRightHTML += '<tr style="border: 1px solid black; height: 38px;"><td style="border: 1px solid black; padding: 4px;">' + (item ? item.reference : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.quantity ? item.quantity : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.discount ? item.discount.toFixed(2) : '') + '</td></tr>';
+        tableRightHTML += '<tr style="border: 1px solid black; height: 38px;"><td style="border: 1px solid black; padding: 4px;">' + (item ? item.reference : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.quantity ? formatQuantity(item.quantity) : '') + '</td><td style="border: 1px solid black; padding: 4px;">' + (item && item.discount ? item.discount.toFixed(2) : '') + '</td></tr>';
     }
     tableRightHTML += '</table>';
 
