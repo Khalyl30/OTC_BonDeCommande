@@ -34,6 +34,10 @@
 
             <div class="section">
                 <h2>RÉFÉRENCES DE MONTURES</h2>
+                <div class="reference-actions">
+                    <button type="button" id="addReference">Ajouter une Référence</button>
+                    <button type="button" id="removeReference" class="remove-btn">Supprimer</button>
+                </div>
                 <div id="referencesContainer">
                     <div class="reference-item">
                         <input type="text" class="reference" placeholder="Référence de monture" oninput="this.value = this.value.toUpperCase()">
@@ -41,10 +45,7 @@
                         <input type="number" class="discount" placeholder="Remise" min="0" step="0.01">
                     </div>
                 </div>
-                <div class="reference-actions">
-                    <button type="button" id="addReference">Ajouter une Référence</button>
-                    <button type="button" id="removeReference" class="remove-btn">Supprimer</button>
-                </div>
+                
             </div>
 
             <p>Quantité: <span id="totalQuantity">0</span></p>
