@@ -27,7 +27,7 @@
                 <label for="orderDate">Date :</label>
                 <input type="date" id="orderDate" required>
 
-                <label for="clientName">Nom du Client :</label>
+                <label for="clientName">Client :</label>
                 <input type="text" id="clientName" required>
 
                 <label for="clientAddress">Adresse :</label>
@@ -38,24 +38,32 @@
             </section>
 
             <section class="section">
-                <h2>RÉFÉRENCES DE MONTURES</h2>
+                <div class="controls-panel">
+                    <div class="references-summary">
+                        <button type="button" id="clearForm" class="clear-btn">Réinitialiser</button>
+                        <p class="total-line">Quantité : <span id="totalQuantity">0</span></p>
+                    </div>
 
-                <div class="form-actions">
-                    <button type="button" id="clearForm" class="clear-btn">Vider le formulaire</button>
-                    <button type="submit" id="generateOrder">Générer bon de commande</button>
-                    <button type="button" id="addReference">Ajouter une Référence</button>
+                    <div class="form-actions">
+                        <button type="button" id="addReference">Ajouter une référence</button>
+                        <button type="submit" id="generateOrder">Créer bon de commande</button>
+                    </div>
                 </div>
+
+                <h2>RÉFÉRENCES DE MONTURES</h2>
 
                 <div id="referencesContainer">
                     <div class="reference-item">
-                        <input type="text" class="reference" placeholder="Référence de monture">
-                        <input type="number" class="quantity" placeholder="Quantité" min="1" value="1">
+                        <input type="text" class="reference" placeholder="Référence">
+                        <div class="quantity-control">
+                            <button type="button" class="quantity-btn decrement" aria-label="Diminuer la quantité">-</button>
+                            <input type="number" class="quantity" min="1" value="1" readonly>
+                            <button type="button" class="quantity-btn increment" aria-label="Augmenter la quantité">+</button>
+                        </div>
                         <input type="text" class="discount" placeholder="Remise">
                     </div>
                 </div>
             </section>
-
-            <p class="total-line">Quantité : <span id="totalQuantity">0</span></p>
         </form>
 
         <section id="generatedResults" class="generated-results" hidden>

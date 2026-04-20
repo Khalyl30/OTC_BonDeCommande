@@ -14,7 +14,7 @@ body {
     background-color: #ffffff;
     width: 100%;
     max-width: 100%;
-    padding: 15px;
+    padding: 12px;
     box-sizing: border-box;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -57,6 +57,10 @@ h1 {
     margin-bottom: 15px;
 }
 
+.controls-panel {
+    margin-bottom: 14px;
+}
+
 h2 {
     margin: 15px 0 10px;
     padding-bottom: 5px;
@@ -73,19 +77,21 @@ label {
     font-weight: 700;
 }
 
+input[type="date"],
 input[type="text"],
 input[type="email"],
 input[type="number"] {
     width: 100%;
     margin-bottom: 5px;
-    padding: 10px;
+    padding: 8px;
     box-sizing: border-box;
     border: 1px solid #dddddd;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
     transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
+input[type="date"]:focus,
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="number"]:focus {
@@ -97,17 +103,19 @@ input[type="number"]:focus {
 
 .form-actions {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 16px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .reference-item {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    padding: 4px;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 2px 0;
     border: 1px solid transparent;
     border-radius: 8px;
     transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
@@ -121,22 +129,73 @@ input[type="number"]:focus {
 }
 
 .reference,
-.quantity,
+.quantity-control,
 .discount {
     min-width: 0;
-    padding: 10px;
+    margin-bottom: 0;
+    height: 36px;
+    box-sizing: border-box;
+}
+
+.reference,
+.discount {
+    padding: 0 8px;
     border: 1px solid #dddddd;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .reference {
-    flex: 2 1 0;
+    flex: 1 1 0;
+    text-transform: uppercase;
 }
 
-.quantity,
+.quantity-control {
+    display: flex;
+    align-items: stretch;
+    flex: 0 0 84px;
+    min-width: 84px;
+}
+
 .discount {
     flex: 1 1 0;
+}
+
+.quantity {
+    width: 32px;
+    margin-bottom: 0;
+    border-radius: 0;
+    text-align: center;
+    font-weight: 700;
+    height: 36px;
+    padding: 0 4px;
+}
+
+.quantity-btn {
+    width: 32px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d0d8e8;
+    background: #eef3fb;
+    color: #071260;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.quantity-btn.decrement {
+    border-radius: 8px 0 0 8px;
+}
+
+.quantity-btn.increment {
+    border-radius: 0 8px 8px 0;
+}
+
+.quantity-btn:hover {
+    background: #d9e3f6;
 }
 
 button,
@@ -159,46 +218,56 @@ button:active,
     box-shadow: none;
 }
 
-#clearForm {
-    padding: 10px;
-    background-color: #6c757d;
-    color: #ffffff;
+#clearForm,
+#generateOrder,
+#addReference {
+    flex: 1 1 0;
+    width: 100%;
+    height: 46px;
+    padding: 0 12px;
+    margin: 0;
     font-size: 14px;
+}
+
+#clearForm {
+    background-color: #8AA0C6;
+    color: #ffffff;
 }
 
 #clearForm:hover {
-    background-color: #5a6268;
+    background-color: #768fb8;
 }
 
 #generateOrder {
-    width: 100%;
-    margin-top: 15px;
-    padding: 14px;
-    background-color: #007bff;
+    background-color: #071260;
     color: #ffffff;
-    font-size: 16px;
 }
 
 #generateOrder:hover {
-    background-color: #0056b3;
+    background-color: #0d1d8b;
 }
 
 #addReference {
-    width: 100%;
-    margin-top: 10px;
-    padding: 12px;
-    background-color: #28a745;
+    background-color: #D30635;
     color: #ffffff;
-    font-size: 14px;
 }
 
 #addReference:hover {
-    background-color: #218838;
+    background-color: #b2052d;
+}
+
+.references-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
 }
 
 .total-line {
-    margin-top: 16px;
+    margin: 0;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .generated-results {
@@ -247,13 +316,13 @@ button:active,
     align-items: center;
     justify-content: center;
     padding: 10px 12px;
-    background: #007bff;
+    background: #071260;
     color: #ffffff;
     text-decoration: none;
 }
 
 .generated-actions a:hover {
-    background: #0056b3;
+    background: #0d1d8b;
 }
 
 @media (min-width: 768px) {
@@ -277,6 +346,27 @@ button:active,
 
     .reference-item {
         gap: 10px;
+        padding: 4px;
+    }
+
+    .reference {
+        flex: 1.4 1 0;
+    }
+
+    .quantity-control {
+        flex-basis: 96px;
+        height: 40px;
+    }
+
+    .reference,
+    .discount {
+        height: 40px;
+        font-size: 14px;
+    }
+
+    .quantity,
+    .quantity-btn {
+        height: 40px;
     }
 }
 

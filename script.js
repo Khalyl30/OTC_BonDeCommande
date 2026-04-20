@@ -38,8 +38,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const referenceItem = document.createElement('div');
         referenceItem.className = 'reference-item';
         referenceItem.innerHTML = `
-            <input type="text" class="reference" placeholder="Référence de monture">
-            <input type="number" class="quantity" placeholder="Quantité" min="1" value="1">
+            <input type="text" class="reference" placeholder="Référence">
+            <div class="quantity-control">
+                <button type="button" class="quantity-btn decrement" aria-label="Diminuer la quantité">-</button>
+                <input type="number" class="quantity" min="1" value="1" readonly>
+                <button type="button" class="quantity-btn increment" aria-label="Augmenter la quantité">+</button>
+            </div>
             <input type="text" class="discount" placeholder="Remise">
         `;
         return referenceItem;
@@ -108,8 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const draft = JSON.parse(savedDraft);
             elements.orderDateInput.value = draft.orderDate || TODAY;
-            elements.clientName.value = draft.clientName || '';
-            elements.clientAddress.value = draft.clientAddress || '';
+            elements.clientName.value = toTitleCase(draft.clientName || '');
+            elements.clientAddress.value = toTitleCase(draft.clientAddress || '');
             elements.clientEmail.value = draft.clientEmail || '';
 
             if (Array.isArray(draft.references) && draft.references.length > 0) {
@@ -117,8 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 draft.references.forEach(function(savedItem) {
                     const referenceItem = createReferenceItem();
-                    referenceItem.querySelector('.reference').value = toTitleCase(savedItem.reference || '');
-                    referenceItem.querySelector('.quantity').value = savedItem.quantity || '1';
+                    referenceItem.querySelector('.reference').value = toUpperCaseValue(savedItem.reference || '');
+                    referenceItem.querySelector('.quantity').value = sanitizeQuantityValue(savedItem.quantity);
                     referenceItem.querySelector('.discount').value = toTitleCase(savedItem.discount || '');
                     elements.referencesContainer.appendChild(referenceItem);
                 });
@@ -179,12 +183,12 @@ document.addEventListener('DOMContentLoaded', function() {
             event.target.value = toTitleCase(event.target.value);
         }
 
-        if (event.target.classList.contains('reference') || event.target.classList.contains('discount')) {
-            event.target.value = toTitleCase(event.target.value);
+        if (event.target.classList.contains('reference')) {
+            event.target.value = toUpperCaseValue(event.target.value);
         }
 
-        if (event.target.classList.contains('quantity')) {
-            updateTotalQuantity();
+        if (event.target.classList.contains('discount')) {
+            event.target.value = toTitleCase(event.target.value);
         }
 
         saveDraft();
@@ -215,6 +219,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function handleReferenceContainerClick(event) {
+        const button = event.target.closest('.quantity-btn');
+        if (!button) {
+            return;
+        }
+
+        const quantityInput = button.parentElement.querySelector('.quantity');
+        const currentValue = sanitizeQuantityValue(quantityInput.value);
+        const nextValue = button.classList.contains('increment') ? currentValue + 1 : Math.max(1, currentValue - 1);
+
+        quantityInput.value = String(nextValue);
+        updateTotalQuantity();
+        saveDraft();
+    }
+
     function handleAddReference() {
         const referenceItem = createReferenceItem();
         elements.referencesContainer.insertBefore(referenceItem, elements.referencesContainer.firstChild);
@@ -224,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleClearForm() {
-        const confirmClear = window.confirm('Vider le formulaire et supprimer le brouillon enregistré ?');
+        const confirmClear = window.confirm('Réinitialiser le formulaire et supprimer le brouillon enregistré ?');
         if (!confirmClear) {
             return;
         }
@@ -245,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         if (formData.items.length === 0) {
-            window.alert('Ajoutez au moins une référence avant de générer le bon de commande.');
+            window.alert('Ajoutez au moins une référence avant de créer le bon de commande.');
             return;
         }
 
@@ -254,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleGeneratedResults(true);
 
         elements.submitBtn.disabled = true;
-        elements.submitBtn.textContent = 'Génération en cours...';
+        elements.submitBtn.textContent = 'Création en cours...';
 
         try {
             for (let index = 0; index < chunks.length; index += 1) {
@@ -278,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
             elements.generatedResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } finally {
             elements.submitBtn.disabled = false;
-            elements.submitBtn.textContent = 'Générer bon de commande';
+            elements.submitBtn.textContent = 'Créer bon de commande';
         }
     }
 
@@ -286,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreDraft();
     updateTotalQuantity();
 
+    elements.referencesContainer.addEventListener('click', handleReferenceContainerClick);
     elements.referencesContainer.addEventListener('focusin', handleFocusIn);
     elements.referencesContainer.addEventListener('focusout', handleFocusOut);
     elements.orderForm.addEventListener('input', handleFormInput);
@@ -317,7 +337,7 @@ async function generateDocument(options) {
                     </div>
                     <div style="width: 45%; padding: 10px; border: 1px solid black; border-radius: 10px;">
                         <h3 style="margin: 0 0 10px;">Informations Client :</h3>
-                        <p style="margin: 5px 0;"><strong>Nom :</strong> ${escapeHtml(options.clientName)}</p>
+                        <p style="margin: 5px 0;"><strong>Client :</strong> ${escapeHtml(options.clientName)}</p>
                         ${addressLine}
                         <p style="margin: 5px 0;"><strong>Email :</strong> ${escapeHtml(options.clientEmail)}</p>
                         <p style="margin: 5px 0;"><strong>Date :</strong> ${formatOrderDate(options.orderDate)}</p>
@@ -374,9 +394,9 @@ function buildDocumentTable(items) {
         const item = items[index];
         rows += `
             <tr style="border: 1px solid black; height: 38px;">
-                <td style="border: 1px solid black; padding: 4px; font-weight: 700;">${item ? escapeHtml(item.reference) : ''}</td>
+                <td style="border: 1px solid black; padding: 4px; font-weight: 700; text-align: center; vertical-align: middle;">${item ? escapeHtml(item.reference) : ''}</td>
                 <td style="border: 1px solid black; padding: 4px; text-align: center;">${item ? formatQuantityCell(item.quantity) : ''}</td>
-                <td style="border: 1px solid black; padding: 4px; font-weight: 700;">${item ? formatDiscountCell(item.discount) : ''}</td>
+                <td style="border: 1px solid black; padding: 4px; font-weight: 700; text-align: center; vertical-align: middle;">${item ? formatDiscountCell(item.discount) : ''}</td>
             </tr>
         `;
     }
@@ -385,12 +405,11 @@ function buildDocumentTable(items) {
 }
 
 function formatQuantityCell(quantity) {
-    if (!quantity) {
+    if (!quantity || quantity <= 1) {
         return '';
     }
 
-    const color = quantity > 1 ? '#c62828' : '#111111';
-    return `<span style="font-weight: 700; color: ${color};">x ${quantity}</span>`;
+    return `<span style="font-weight: 700;">x ${quantity}</span>`;
 }
 
 function formatDiscountCell(discount) {
@@ -398,7 +417,7 @@ function formatDiscountCell(discount) {
         return '';
     }
 
-    return `<span style="font-weight: 700; color: #c62828;">${escapeHtml(discount)}</span>`;
+    return `<span style="font-weight: 700;">${escapeHtml(discount)}</span>`;
 }
 
 function formatGeneratedCardLabel(clientName, pageNum, totalPages) {
@@ -423,6 +442,20 @@ function toTitleCase(value) {
         .replace(/\b\p{L}/gu, function(letter) {
             return letter.toUpperCase();
         });
+}
+
+function toUpperCaseValue(value) {
+    return value.toLocaleUpperCase('fr-FR');
+}
+
+function sanitizeQuantityValue(value) {
+    const parsedValue = parseInt(value, 10);
+
+    if (Number.isNaN(parsedValue) || parsedValue < 1) {
+        return 1;
+    }
+
+    return parsedValue;
 }
 
 function escapeHtml(value) {
