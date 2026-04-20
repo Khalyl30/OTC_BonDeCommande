@@ -7,52 +7,64 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="company-header">
+    <main class="container">
+        <header class="company-header">
             <strong>O.T.C</strong><br>
             <strong>Optical Trade Company</strong><br>
-            <p>4 Av.Taieb Mhiri App.N°2 - 2080 ARIANA<br>
-            Tél: 0021629 808 579 / SAV : 29 760 935<br>
-            E-mail: opticaltrade.company@gmail.com</p>
-        </div>
+            <p>
+                4 Av. Taieb Mhiri App. N°2 - 2080 ARIANA<br>
+                Tél : 00 216 29 808 579 / SAV : 29 760 935<br>
+                E-mail : opticaltrade.company@gmail.com
+            </p>
+        </header>
+
         <h1>Bon de Commande</h1>
+
         <form id="orderForm">
-            <div class="section">
+            <section class="section">
                 <h2>Informations Client</h2>
-                <label for="orderDate">Date:</label>
+
+                <label for="orderDate">Date :</label>
                 <input type="date" id="orderDate" required>
 
-                <label for="clientName">Nom du Client:</label>
-                <input type="text" id="clientName" required oninput="this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase()">
+                <label for="clientName">Nom du Client :</label>
+                <input type="text" id="clientName" required>
 
-                <label for="clientAddress">Adresse:</label>
-                <input type="text" id="clientAddress" required oninput="this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase()">
+                <label for="clientAddress">Adresse :</label>
+                <input type="text" id="clientAddress">
 
-                <label for="clientEmail">Email:</label>
+                <label for="clientEmail">Email :</label>
                 <input type="email" id="clientEmail">
-            </div>
+            </section>
 
-            <div class="section">
+            <section class="section">
                 <h2>RÉFÉRENCES DE MONTURES</h2>
-                <div class="reference-actions">
+
+                <div class="form-actions">
+                    <button type="button" id="clearForm" class="clear-btn">Vider le formulaire</button>
+                    <button type="submit" id="generateOrder">Générer bon de commande</button>
                     <button type="button" id="addReference">Ajouter une Référence</button>
-                    <button type="button" id="removeReference" class="remove-btn">Supprimer</button>
                 </div>
+
                 <div id="referencesContainer">
                     <div class="reference-item">
-                        <input type="text" class="reference" placeholder="Référence de monture" oninput="this.value = this.value.toUpperCase()">
+                        <input type="text" class="reference" placeholder="Référence de monture">
                         <input type="number" class="quantity" placeholder="Quantité" min="1" value="1">
-                        <input type="number" class="discount" placeholder="Remise" min="0" step="0.01">
+                        <input type="text" class="discount" placeholder="Remise">
                     </div>
                 </div>
-                
-            </div>
+            </section>
 
-            <p>Quantité: <span id="totalQuantity">0</span></p>
-
-            <button type="submit">Générer bon de commande</button>
+            <p class="total-line">Quantité : <span id="totalQuantity">0</span></p>
         </form>
-    </div>
+
+        <section id="generatedResults" class="generated-results" hidden>
+            <div class="generated-results-header">
+                <h2>Bon de commande</h2>
+            </div>
+            <div id="generatedList" class="generated-list"></div>
+        </section>
+    </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="script.js"></script>
