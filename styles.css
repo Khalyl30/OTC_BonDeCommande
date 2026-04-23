@@ -32,7 +32,7 @@ body {
     align-items: flex-start;
     background: var(--page-bg);
     color: var(--text);
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
 }
 
@@ -143,7 +143,7 @@ input::placeholder {
 }
 
 .controls-panel {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 }
 
 .references-summary {
@@ -169,8 +169,8 @@ input::placeholder {
 }
 
 .form-status {
-    min-height: 20px;
-    margin: 10px 2px 0;
+    min-height: 12px;
+    margin: 4px 2px 0;
     color: var(--text-soft);
     font-size: 13px;
     transition: color 180ms ease, opacity 180ms ease;
@@ -187,7 +187,7 @@ input::placeholder {
 .reference-item {
     display: grid;
     gap: 8px;
-    grid-template-columns: minmax(110px, 1.5fr) minmax(104px, 120px) minmax(90px, 1fr);
+    grid-template-columns: minmax(100px, 1fr) minmax(104px, 120px) minmax(100px, 1fr);
     align-items: stretch;
     margin-bottom: 10px;
     padding: 8px;
@@ -406,7 +406,7 @@ button:focus-visible,
     }
 
     .reference-item {
-        grid-template-columns: minmax(96px, 1.45fr) minmax(98px, 110px) minmax(84px, 1fr);
+        grid-template-columns: minmax(88px, 1fr) minmax(98px, 110px) minmax(88px, 1fr);
         gap: 6px;
         padding: 6px;
     }
@@ -453,6 +453,6 @@ button:focus-visible,
     }
 
     .reference-item {
-        grid-template-columns: minmax(120px, 1.7fr) 140px minmax(100px, 1fr);
+        grid-template-columns: minmax(120px, 1fr) 140px minmax(120px, 1fr);
     }
 }

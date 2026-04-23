@@ -1,7 +1,21 @@
 const STORAGE_KEY = 'otc-order-form-draft';
 const ITEMS_PER_PAGE = 42;
 const ITEMS_PER_TABLE = 21;
+const STATUS_HIDE_DELAY_MS = 2200;
 const TODAY = new Date().toISOString().split('T')[0];
+const APP_FONT_STACK = "'Inter', sans-serif";
+
+const UI_TEXT = {
+    clearConfirm: 'Réinitialiser le formulaire et supprimer le brouillon enregistré ?',
+    clearSuccess: 'Formulaire réinitialisé.',
+    download: 'Télécharger',
+    draftSaved: 'Brouillon enregistré.',
+    emptyReferences: 'Ajoutez au moins une référence avant de créer le bon de commande.',
+    generateBusy: 'Génération en cours...',
+    generateDefault: 'Générer bon de commande',
+    generateSuccess: 'Le bon de commande a été généré avec succès.'
+};
+
 const COMPANY_INFO_HTML = `
     <p style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 0.14em; line-height: 1;">O.T.C</p>
     <p style="margin: 2px 0 0; font-size: 19px; font-weight: 800;">Optical Trade Company</p>
@@ -12,8 +26,30 @@ const COMPANY_INFO_HTML = `
     </p>
 `;
 
+const REFERENCE_ITEM_HTML = `
+    <input type="text" class="reference" placeholder="Référence">
+    <div class="quantity-control">
+        <button type="button" class="quantity-btn decrement" aria-label="Diminuer la quantité">-</button>
+        <input type="number" class="quantity" min="1" value="1" inputmode="numeric">
+        <button type="button" class="quantity-btn increment" aria-label="Augmenter la quantité">+</button>
+    </div>
+    <input type="text" class="discount" placeholder="Remise">
+`;
+
 document.addEventListener('DOMContentLoaded', function() {
-    const elements = {
+    const elements = getElements();
+    const state = {
+        lastFocusedItem: null,
+        keyboardAnchorInput: null,
+        statusTimeoutId: null
+    };
+
+    initializeForm(elements);
+    bindEvents(elements, state);
+});
+
+function getElements() {
+    return {
         addReferenceBtn: document.getElementById('addReference'),
         clearFormBtn: document.getElementById('clearForm'),
         clientAddress: document.getElementById('clientAddress'),
@@ -30,363 +66,398 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn: document.getElementById('generateOrder'),
         totalQuantity: document.getElementById('totalQuantity')
     };
+}
 
-    let lastFocusedItem = null;
-    let keyboardAnchorInput = null;
-    let statusTimeoutId = null;
+function initializeForm(elements) {
+    setDefaultDate(elements);
+    restoreDraft(elements);
+    updateTotalQuantity(elements);
+}
 
-    function setDefaultDate() {
-        elements.orderDateInput.value = TODAY;
+function bindEvents(elements, state) {
+    elements.referencesContainer.addEventListener('pointerdown', function(event) {
+        handleQuantityButtonPointerDown(event);
+    });
+
+    elements.referencesContainer.addEventListener('click', function(event) {
+        handleReferenceContainerClick(event, elements, state);
+    });
+
+    elements.referencesContainer.addEventListener('focusin', function(event) {
+        handleFocusIn(event, state);
+    });
+
+    elements.referencesContainer.addEventListener('focusout', function(event) {
+        handleFocusOut(event, state);
+    });
+
+    elements.orderForm.addEventListener('input', function(event) {
+        handleFormInput(event, elements, state);
+    });
+
+    elements.addReferenceBtn.addEventListener('click', function() {
+        handleAddReference(elements, state);
+    });
+
+    elements.clearFormBtn.addEventListener('click', function() {
+        handleClearForm(elements, state);
+    });
+
+    elements.orderForm.addEventListener('submit', function(event) {
+        handleSubmit(event, elements, state);
+    });
+}
+
+function setDefaultDate(elements) {
+    elements.orderDateInput.value = TODAY;
+}
+
+function createReferenceItem() {
+    const referenceItem = document.createElement('div');
+    referenceItem.className = 'reference-item';
+    referenceItem.innerHTML = REFERENCE_ITEM_HTML;
+    return referenceItem;
+}
+
+function getReferenceItems(elements) {
+    return Array.from(elements.referencesContainer.querySelectorAll('.reference-item'));
+}
+
+function getReferenceFields(item) {
+    return {
+        reference: item.querySelector('.reference'),
+        quantity: item.querySelector('.quantity'),
+        discount: item.querySelector('.discount')
+    };
+}
+
+function updateTotalQuantity(elements) {
+    const total = getReferenceItems(elements).reduce(function(sum, item) {
+        const quantityValue = parseInt(getReferenceFields(item).quantity.value, 10);
+        return sum + (Number.isNaN(quantityValue) ? 0 : quantityValue);
+    }, 0);
+
+    elements.totalQuantity.textContent = String(total);
+}
+
+function toggleGeneratedResults(elements, visible) {
+    elements.generatedResults.hidden = !visible;
+}
+
+function clearGeneratedResults(elements) {
+    elements.generatedList.innerHTML = '';
+    toggleGeneratedResults(elements, false);
+}
+
+function showStatusMessage(elements, state, message, tone) {
+    elements.formStatus.textContent = message;
+    elements.formStatus.dataset.tone = tone || 'neutral';
+
+    if (state.statusTimeoutId) {
+        window.clearTimeout(state.statusTimeoutId);
     }
 
-    function createReferenceItem() {
-        const referenceItem = document.createElement('div');
-        referenceItem.className = 'reference-item';
-        referenceItem.innerHTML = `
-            <input type="text" class="reference" placeholder="Référence">
-            <div class="quantity-control">
-                <button type="button" class="quantity-btn decrement" aria-label="Diminuer la quantité">-</button>
-                <input type="number" class="quantity" min="1" value="1" inputmode="numeric">
-                <button type="button" class="quantity-btn increment" aria-label="Augmenter la quantité">+</button>
-            </div>
-            <input type="text" class="discount" placeholder="Remise">
-        `;
-        return referenceItem;
+    state.statusTimeoutId = window.setTimeout(function() {
+        elements.formStatus.textContent = '';
+        elements.formStatus.dataset.tone = '';
+    }, STATUS_HIDE_DELAY_MS);
+}
+
+function resetFormState(elements, state) {
+    elements.orderForm.reset();
+    setDefaultDate(elements);
+    elements.referencesContainer.innerHTML = '';
+    elements.referencesContainer.appendChild(createReferenceItem());
+    clearGeneratedResults(elements);
+    state.lastFocusedItem = null;
+    state.keyboardAnchorInput = null;
+    updateTotalQuantity(elements);
+}
+
+function serializeReferences(elements) {
+    return getReferenceItems(elements).map(function(item) {
+        const fields = getReferenceFields(item);
+        return {
+            reference: fields.reference.value,
+            quantity: fields.quantity.value,
+            discount: fields.discount.value
+        };
+    });
+}
+
+function getDraftData(elements) {
+    return {
+        orderDate: elements.orderDateInput.value,
+        clientName: elements.clientName.value,
+        clientAddress: elements.clientAddress.value,
+        clientEmail: elements.clientEmail.value,
+        salesAgent: elements.salesAgent.value,
+        managerPhone: elements.managerPhone.value,
+        references: serializeReferences(elements)
+    };
+}
+
+function saveDraft(elements, state) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getDraftData(elements)));
+    showStatusMessage(elements, state, UI_TEXT.draftSaved, 'success');
+}
+
+function restoreDraft(elements) {
+    const savedDraft = localStorage.getItem(STORAGE_KEY);
+    if (!savedDraft) {
+        return;
     }
 
-    function getReferenceItems() {
-        return Array.from(elements.referencesContainer.querySelectorAll('.reference-item'));
-    }
+    try {
+        const draft = JSON.parse(savedDraft);
+        elements.orderDateInput.value = draft.orderDate || TODAY;
+        elements.clientName.value = toTitleCase(draft.clientName || '');
+        elements.clientAddress.value = toTitleCase(draft.clientAddress || '');
+        elements.clientEmail.value = draft.clientEmail || '';
+        elements.salesAgent.value = toTitleCase(draft.salesAgent || '');
+        elements.managerPhone.value = draft.managerPhone || '';
 
-    function updateTotalQuantity() {
-        const total = getReferenceItems().reduce(function(sum, item) {
-            const value = parseInt(item.querySelector('.quantity').value, 10);
-            return sum + (Number.isNaN(value) ? 0 : value);
-        }, 0);
-
-        elements.totalQuantity.textContent = String(total);
-    }
-
-    function toggleGeneratedResults(visible) {
-        elements.generatedResults.hidden = !visible;
-    }
-
-    function clearGeneratedResults() {
-        elements.generatedList.innerHTML = '';
-        toggleGeneratedResults(false);
-    }
-
-    function showStatusMessage(message, tone) {
-        elements.formStatus.textContent = message;
-        elements.formStatus.dataset.tone = tone || 'neutral';
-
-        if (statusTimeoutId) {
-            window.clearTimeout(statusTimeoutId);
+        if (!Array.isArray(draft.references) || draft.references.length === 0) {
+            return;
         }
 
-        statusTimeoutId = window.setTimeout(function() {
-            elements.formStatus.textContent = '';
-            elements.formStatus.dataset.tone = '';
-        }, 2200);
-    }
-
-    function resetFormState() {
-        elements.orderForm.reset();
-        setDefaultDate();
         elements.referencesContainer.innerHTML = '';
-        elements.referencesContainer.appendChild(createReferenceItem());
-        clearGeneratedResults();
-        lastFocusedItem = null;
-        keyboardAnchorInput = null;
-        updateTotalQuantity();
-    }
+        draft.references.forEach(function(savedItem) {
+            const referenceItem = createReferenceItem();
+            const fields = getReferenceFields(referenceItem);
 
-    function serializeReferences() {
-        return getReferenceItems().map(function(item) {
-            return {
-                reference: item.querySelector('.reference').value,
-                quantity: item.querySelector('.quantity').value,
-                discount: item.querySelector('.discount').value
-            };
+            fields.reference.value = toUpperCaseValue(savedItem.reference || '');
+            fields.quantity.value = String(sanitizeQuantityValue(savedItem.quantity));
+            fields.discount.value = toTitleCase(savedItem.discount || '');
+
+            elements.referencesContainer.appendChild(referenceItem);
         });
+    } catch (error) {
+        console.error('Error restoring draft:', error);
     }
+}
 
-    function saveDraft() {
-        const draft = {
-            orderDate: elements.orderDateInput.value,
-            clientName: elements.clientName.value,
-            clientAddress: elements.clientAddress.value,
-            clientEmail: elements.clientEmail.value,
-            salesAgent: elements.salesAgent.value,
-            managerPhone: elements.managerPhone.value,
-            references: serializeReferences()
-        };
+function collectItems(elements) {
+    return getReferenceItems(elements)
+        .reduce(function(items, item) {
+            const fields = getReferenceFields(item);
+            const reference = fields.reference.value.trim();
+            const quantity = fields.quantity.value;
+            const discount = fields.discount.value.trim();
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-        showStatusMessage('Brouillon enregistré.', 'success');
-    }
-
-    function restoreDraft() {
-        const savedDraft = localStorage.getItem(STORAGE_KEY);
-        if (!savedDraft) {
-            return;
-        }
-
-        try {
-            const draft = JSON.parse(savedDraft);
-            elements.orderDateInput.value = draft.orderDate || TODAY;
-            elements.clientName.value = toTitleCase(draft.clientName || '');
-            elements.clientAddress.value = toTitleCase(draft.clientAddress || '');
-            elements.clientEmail.value = draft.clientEmail || '';
-            elements.salesAgent.value = toTitleCase(draft.salesAgent || '');
-            elements.managerPhone.value = draft.managerPhone || '';
-
-            if (Array.isArray(draft.references) && draft.references.length > 0) {
-                elements.referencesContainer.innerHTML = '';
-
-                draft.references.forEach(function(savedItem) {
-                    const referenceItem = createReferenceItem();
-                    referenceItem.querySelector('.reference').value = toUpperCaseValue(savedItem.reference || '');
-                    referenceItem.querySelector('.quantity').value = sanitizeQuantityValue(savedItem.quantity);
-                    referenceItem.querySelector('.discount').value = toTitleCase(savedItem.discount || '');
-                    elements.referencesContainer.appendChild(referenceItem);
-                });
-            }
-        } catch (error) {
-            console.error('Error restoring draft:', error);
-        }
-    }
-
-    function collectItems() {
-        return getReferenceItems()
-            .reduce(function(items, item) {
-                const reference = item.querySelector('.reference').value.trim();
-                const quantity = item.querySelector('.quantity').value;
-                const discount = item.querySelector('.discount').value.trim();
-
-                if (reference) {
-                    items.push({
-                        reference: reference,
-                        quantity: quantity ? parseInt(quantity, 10) : '',
-                        discount: discount
-                    });
-                }
-
+            if (!reference) {
                 return items;
-            }, [])
-            .reverse();
-    }
-
-    function addGeneratedCard(fileName, imageUrl, labelText) {
-        const card = document.createElement('article');
-        card.className = 'generated-card';
-
-        const title = document.createElement('h3');
-        title.textContent = labelText;
-
-        const image = document.createElement('img');
-        image.src = imageUrl;
-        image.alt = fileName;
-
-        const actions = document.createElement('div');
-        actions.className = 'generated-actions';
-
-        const downloadLink = document.createElement('a');
-        downloadLink.href = imageUrl;
-        downloadLink.download = fileName;
-        downloadLink.textContent = 'Télécharger';
-
-        actions.appendChild(downloadLink);
-        card.appendChild(title);
-        card.appendChild(image);
-        card.appendChild(actions);
-        elements.generatedList.appendChild(card);
-    }
-
-    function handleFormInput(event) {
-        if (
-            event.target === elements.clientName ||
-            event.target === elements.clientAddress ||
-            event.target === elements.salesAgent
-        ) {
-            event.target.value = toTitleCase(event.target.value);
-        }
-
-        if (event.target.classList.contains('reference')) {
-            event.target.value = toUpperCaseValue(event.target.value);
-        }
-
-        if (event.target.classList.contains('discount')) {
-            event.target.value = toTitleCase(event.target.value);
-        }
-
-        if (event.target.classList.contains('quantity')) {
-            event.target.value = String(sanitizeQuantityValue(event.target.value));
-            updateTotalQuantity();
-        }
-
-        saveDraft();
-    }
-
-    function handleFocusIn(event) {
-        const item = event.target.closest('.reference-item');
-        if (!item) {
-            return;
-        }
-
-        if (lastFocusedItem && lastFocusedItem !== item) {
-            lastFocusedItem.classList.remove('focused');
-        }
-
-        lastFocusedItem = item;
-        item.classList.add('focused');
-
-        if (isKeyboardRelevantInput(event.target)) {
-            keyboardAnchorInput = event.target;
-        }
-    }
-
-    function handleFocusOut(event) {
-        const item = event.target.closest('.reference-item');
-        if (item === lastFocusedItem && !item.contains(document.activeElement)) {
-            item.classList.remove('focused');
-        }
-
-        if (event.target === keyboardAnchorInput && !isKeyboardRelevantInput(document.activeElement)) {
-            keyboardAnchorInput = null;
-        }
-    }
-
-    function handleQuantityButtonPointerDown(event) {
-        const button = event.target.closest('.quantity-btn');
-        if (!button) {
-            return;
-        }
-
-        event.preventDefault();
-    }
-
-    function handleReferenceContainerClick(event) {
-        const button = event.target.closest('.quantity-btn');
-        if (!button) {
-            return;
-        }
-
-        const quantityInput = button.parentElement.querySelector('.quantity');
-        const currentValue = sanitizeQuantityValue(quantityInput.value);
-        const nextValue = button.classList.contains('increment') ? currentValue + 1 : Math.max(1, currentValue - 1);
-
-        quantityInput.value = String(nextValue);
-        updateTotalQuantity();
-        saveDraft();
-
-        if (keyboardAnchorInput && document.body.contains(keyboardAnchorInput)) {
-            keyboardAnchorInput.focus({ preventScroll: true });
-        } else {
-            quantityInput.focus({ preventScroll: true });
-        }
-    }
-
-    function handleAddReference() {
-        const referenceItem = createReferenceItem();
-        elements.referencesContainer.insertBefore(referenceItem, elements.referencesContainer.firstChild);
-        updateTotalQuantity();
-        referenceItem.querySelector('.reference').focus();
-        saveDraft();
-    }
-
-    function handleClearForm() {
-        const confirmClear = window.confirm('Réinitialiser le formulaire et supprimer le brouillon enregistré ?');
-        if (!confirmClear) {
-            return;
-        }
-
-        resetFormState();
-        localStorage.removeItem(STORAGE_KEY);
-        showStatusMessage('Formulaire réinitialisé.', 'neutral');
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-
-        const formData = {
-            clientName: elements.clientName.value.trim(),
-            clientAddress: elements.clientAddress.value.trim(),
-            clientEmail: elements.clientEmail.value.trim(),
-            salesAgent: elements.salesAgent.value.trim(),
-            managerPhone: elements.managerPhone.value.trim(),
-            orderDate: elements.orderDateInput.value,
-            items: collectItems()
-        };
-
-        if (formData.items.length === 0) {
-            window.alert('Ajoutez au moins une référence avant de créer le bon de commande.');
-            return;
-        }
-
-        const chunks = chunkArray(formData.items, ITEMS_PER_PAGE);
-        clearGeneratedResults();
-        toggleGeneratedResults(true);
-
-        elements.submitBtn.disabled = true;
-        elements.submitBtn.textContent = 'Génération en cours...';
-
-        try {
-            for (let index = 0; index < chunks.length; index += 1) {
-                const result = await generateDocument({
-                    clientName: formData.clientName,
-                    clientAddress: formData.clientAddress,
-                    clientEmail: formData.clientEmail,
-                    salesAgent: formData.salesAgent,
-                    managerPhone: formData.managerPhone,
-                    orderDate: formData.orderDate,
-                    items: chunks[index],
-                    pageNum: index + 1,
-                    totalPages: chunks.length
-                });
-
-                addGeneratedCard(
-                    result.fileName,
-                    result.imageUrl,
-                    formatGeneratedCardLabel(formData.clientName, index + 1, chunks.length)
-                );
             }
 
-            elements.generatedResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showStatusMessage('Le bon de commande a été généré avec succès.', 'success');
-        } finally {
-            elements.submitBtn.disabled = false;
-            elements.submitBtn.textContent = 'Générer bon de commande';
-        }
+            items.push({
+                reference: reference,
+                quantity: quantity ? parseInt(quantity, 10) : '',
+                discount: discount
+            });
+
+            return items;
+        }, [])
+        .reverse();
+}
+
+function addGeneratedCard(elements, fileName, imageUrl, labelText) {
+    const card = document.createElement('article');
+    card.className = 'generated-card';
+
+    const title = document.createElement('h3');
+    title.textContent = labelText;
+
+    const image = document.createElement('img');
+    image.src = imageUrl;
+    image.alt = fileName;
+
+    const actions = document.createElement('div');
+    actions.className = 'generated-actions';
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = imageUrl;
+    downloadLink.download = fileName;
+    downloadLink.textContent = UI_TEXT.download;
+
+    actions.appendChild(downloadLink);
+    card.appendChild(title);
+    card.appendChild(image);
+    card.appendChild(actions);
+    elements.generatedList.appendChild(card);
+}
+
+function handleFormInput(event, elements, state) {
+    const target = event.target;
+
+    if (target === elements.clientName || target === elements.clientAddress || target === elements.salesAgent) {
+        target.value = toTitleCase(target.value);
     }
 
-    setDefaultDate();
-    restoreDraft();
-    updateTotalQuantity();
+    if (target.classList.contains('reference')) {
+        target.value = toUpperCaseValue(target.value);
+    }
 
-    elements.referencesContainer.addEventListener('pointerdown', handleQuantityButtonPointerDown);
-    elements.referencesContainer.addEventListener('click', handleReferenceContainerClick);
-    elements.referencesContainer.addEventListener('focusin', handleFocusIn);
-    elements.referencesContainer.addEventListener('focusout', handleFocusOut);
-    elements.orderForm.addEventListener('input', handleFormInput);
-    elements.addReferenceBtn.addEventListener('click', handleAddReference);
-    elements.clearFormBtn.addEventListener('click', handleClearForm);
-    elements.orderForm.addEventListener('submit', handleSubmit);
-});
+    if (target.classList.contains('discount')) {
+        target.value = toTitleCase(target.value);
+    }
+
+    if (target.classList.contains('quantity')) {
+        target.value = String(sanitizeQuantityValue(target.value));
+        updateTotalQuantity(elements);
+    }
+
+    saveDraft(elements, state);
+}
+
+function handleFocusIn(event, state) {
+    const item = event.target.closest('.reference-item');
+    if (!item) {
+        return;
+    }
+
+    if (state.lastFocusedItem && state.lastFocusedItem !== item) {
+        state.lastFocusedItem.classList.remove('focused');
+    }
+
+    state.lastFocusedItem = item;
+    item.classList.add('focused');
+
+    if (isKeyboardRelevantInput(event.target)) {
+        state.keyboardAnchorInput = event.target;
+    }
+}
+
+function handleFocusOut(event, state) {
+    const item = event.target.closest('.reference-item');
+    if (item === state.lastFocusedItem && !item.contains(document.activeElement)) {
+        item.classList.remove('focused');
+    }
+
+    if (event.target === state.keyboardAnchorInput && !isKeyboardRelevantInput(document.activeElement)) {
+        state.keyboardAnchorInput = null;
+    }
+}
+
+function handleQuantityButtonPointerDown(event) {
+    if (!event.target.closest('.quantity-btn')) {
+        return;
+    }
+
+    event.preventDefault();
+}
+
+function handleReferenceContainerClick(event, elements, state) {
+    const button = event.target.closest('.quantity-btn');
+    if (!button) {
+        return;
+    }
+
+    const quantityInput = button.parentElement.querySelector('.quantity');
+    const currentValue = sanitizeQuantityValue(quantityInput.value);
+    const nextValue = button.classList.contains('increment')
+        ? currentValue + 1
+        : Math.max(1, currentValue - 1);
+
+    quantityInput.value = String(nextValue);
+    updateTotalQuantity(elements);
+    saveDraft(elements, state);
+
+    if (state.keyboardAnchorInput && document.body.contains(state.keyboardAnchorInput)) {
+        state.keyboardAnchorInput.focus({ preventScroll: true });
+    }
+}
+
+function handleAddReference(elements, state) {
+    const referenceItem = createReferenceItem();
+    elements.referencesContainer.insertBefore(referenceItem, elements.referencesContainer.firstChild);
+    updateTotalQuantity(elements);
+    getReferenceFields(referenceItem).reference.focus();
+    saveDraft(elements, state);
+}
+
+function handleClearForm(elements, state) {
+    if (!window.confirm(UI_TEXT.clearConfirm)) {
+        return;
+    }
+
+    resetFormState(elements, state);
+    localStorage.removeItem(STORAGE_KEY);
+    showStatusMessage(elements, state, UI_TEXT.clearSuccess, 'neutral');
+}
+
+async function handleSubmit(event, elements, state) {
+    event.preventDefault();
+
+    const formData = {
+        clientName: elements.clientName.value.trim(),
+        clientAddress: elements.clientAddress.value.trim(),
+        clientEmail: elements.clientEmail.value.trim(),
+        salesAgent: elements.salesAgent.value.trim(),
+        managerPhone: elements.managerPhone.value.trim(),
+        orderDate: elements.orderDateInput.value,
+        items: collectItems(elements)
+    };
+
+    if (formData.items.length === 0) {
+        window.alert(UI_TEXT.emptyReferences);
+        return;
+    }
+
+    const chunks = chunkArray(formData.items, ITEMS_PER_PAGE);
+    clearGeneratedResults(elements);
+    toggleGeneratedResults(elements, true);
+
+    elements.submitBtn.disabled = true;
+    elements.submitBtn.textContent = UI_TEXT.generateBusy;
+
+    try {
+        for (let index = 0; index < chunks.length; index += 1) {
+            const result = await generateDocument({
+                clientName: formData.clientName,
+                clientAddress: formData.clientAddress,
+                clientEmail: formData.clientEmail,
+                salesAgent: formData.salesAgent,
+                managerPhone: formData.managerPhone,
+                orderDate: formData.orderDate,
+                items: chunks[index],
+                pageNum: index + 1,
+                totalPages: chunks.length
+            });
+
+            addGeneratedCard(
+                elements,
+                result.fileName,
+                result.imageUrl,
+                formatGeneratedCardLabel(formData.clientName, index + 1, chunks.length)
+            );
+        }
+
+        elements.generatedResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showStatusMessage(elements, state, UI_TEXT.generateSuccess, 'success');
+    } finally {
+        elements.submitBtn.disabled = false;
+        elements.submitBtn.textContent = UI_TEXT.generateDefault;
+    }
+}
 
 async function generateDocument(options) {
     const leftItems = options.items.slice(0, ITEMS_PER_TABLE);
     const rightItems = options.items.slice(ITEMS_PER_TABLE);
     const totalQuantity = options.items.reduce(function(sum, item) {
-        return sum + (item.quantity ? item.quantity : 0);
+        return sum + (item.quantity || 0);
     }, 0);
-    const addressLine = `<p style="margin: 5px 0;"><strong>Adresse :</strong> ${escapeHtml(options.clientAddress)}</p>`;
-    const emailLine = `<p style="margin: 5px 0;"><strong>Email :</strong> ${escapeHtml(options.clientEmail)}</p>`;
-    const salesAgentLine = `<p style="margin: 5px 0;"><strong>Agent Commercial :</strong> ${escapeHtml(options.salesAgent)}</p>`;
-    const managerPhoneLine = `<p style="margin: 5px 0;"><strong>N° Tel Du Responsable :</strong> ${escapeHtml(options.managerPhone)}</p>`;
+
+    const clientDetailsHtml = [
+        createDetailLine('Agent Commercial', options.salesAgent),
+        createDetailLine('Client', options.clientName),
+        createDetailLine('Adresse', options.clientAddress),
+        createDetailLine('Email', options.clientEmail),
+        createDetailLine('N° de tél (Responsable)', options.managerPhone),
+        createDetailLine('Date', formatOrderDate(options.orderDate))
+    ].join('');
 
     const html = `
-        <div style="font-family: Arial, sans-serif; width: 210mm; min-height: 297mm; margin: auto; padding: 20px; background: white; display: flex; flex-direction: column; box-sizing: border-box;">
+        <div style="font-family: ${APP_FONT_STACK}; width: 210mm; min-height: 297mm; margin: auto; padding: 20px; background: white; display: flex; flex-direction: column; box-sizing: border-box;">
             <div style="flex: 1; display: flex; flex-direction: column;">
                 <div style="text-align: center; margin-bottom: 20px;">
                     <h1 style="margin: 0; font-size: 24px;">Bon de Commande</h1>
@@ -397,12 +468,7 @@ async function generateDocument(options) {
                         ${COMPANY_INFO_HTML}
                     </div>
                     <div style="width: 45%; padding: 10px; border: 1px solid black; border-radius: 10px; box-sizing: border-box;">
-                        ${salesAgentLine}
-                        <p style="margin: 5px 0;"><strong>Client :</strong> ${escapeHtml(options.clientName)}</p>
-                        ${addressLine}
-                        ${emailLine}
-                        ${managerPhoneLine}
-                        <p style="margin: 5px 0;"><strong>Date :</strong> ${formatOrderDate(options.orderDate)}</p>
+                        ${clientDetailsHtml}
                     </div>
                 </div>
 
@@ -430,7 +496,10 @@ async function generateDocument(options) {
     document.body.appendChild(container);
 
     try {
-        const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+        });
         const imageUrl = canvas.toDataURL('image/png');
         const baseName = sanitizeDocumentFilename(options.clientName, options.orderDate);
         const fileName = options.totalPages === 1
@@ -446,27 +515,34 @@ async function generateDocument(options) {
     }
 }
 
+function createDetailLine(label, value) {
+    return `<p style="margin: 5px 0;"><strong>${label} :</strong> ${escapeHtml(value)}</p>`;
+}
+
 function buildDocumentTable(items) {
-    let rows = `
-        <tr style="border: 1px solid black; height: 38px;">
-            <th style="border: 1px solid black; padding: 4px;">Référence</th>
-            <th style="border: 1px solid black; padding: 4px;">Quantité</th>
-            <th style="border: 1px solid black; padding: 4px;">Remise</th>
-        </tr>
-    `;
+    const headerStyle = 'border: 1px solid black; padding: 4px; background: #e6e9ef; color: #111111;';
+    const rows = [
+        `
+            <tr style="border: 1px solid black; height: 38px;">
+                <th style="${headerStyle}">Référence</th>
+                <th style="${headerStyle}">Quantité</th>
+                <th style="${headerStyle}">Remise</th>
+            </tr>
+        `
+    ];
 
     for (let index = 0; index < ITEMS_PER_TABLE; index += 1) {
         const item = items[index];
-        rows += `
+        rows.push(`
             <tr style="border: 1px solid black; height: 38px;">
                 <td style="border: 1px solid black; padding: 4px; font-weight: 700; text-align: center; vertical-align: middle;">${item ? escapeHtml(item.reference) : ''}</td>
                 <td style="border: 1px solid black; padding: 4px; text-align: center;">${item ? formatQuantityCell(item.quantity) : ''}</td>
                 <td style="border: 1px solid black; padding: 4px; font-weight: 700; text-align: center; vertical-align: middle;">${item ? formatDiscountCell(item.discount) : ''}</td>
             </tr>
-        `;
+        `);
     }
 
-    return `<table style="width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed;">${rows}</table>`;
+    return `<table style="width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed;">${rows.join('')}</table>`;
 }
 
 function formatQuantityCell(quantity) {
@@ -514,12 +590,7 @@ function toUpperCaseValue(value) {
 
 function sanitizeQuantityValue(value) {
     const parsedValue = parseInt(value, 10);
-
-    if (Number.isNaN(parsedValue) || parsedValue < 1) {
-        return 1;
-    }
-
-    return parsedValue;
+    return Number.isNaN(parsedValue) || parsedValue < 1 ? 1 : parsedValue;
 }
 
 function isKeyboardRelevantInput(element) {
@@ -531,7 +602,7 @@ function isKeyboardRelevantInput(element) {
 }
 
 function escapeHtml(value) {
-    return String(value)
+    return String(value || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -556,6 +627,6 @@ function sanitizeDocumentFilename(clientName, orderDate) {
 }
 
 function formatOrderDate(orderDate) {
-    const dateParts = orderDate.split('-');
-    return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+    const [year, month, day] = orderDate.split('-');
+    return `${day}/${month}/${year}`;
 }
