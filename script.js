@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-        showStatusMessage('Brouillon enregistre', 'success');
+        showStatusMessage('Brouillon enregistré.', 'success');
     }
 
     function restoreDraft() {
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         resetFormState();
         localStorage.removeItem(STORAGE_KEY);
-        showStatusMessage('Formulaire reinitialise', 'neutral');
+        showStatusMessage('Formulaire réinitialisé.', 'neutral');
     }
 
     async function handleSubmit(event) {
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleGeneratedResults(true);
 
         elements.submitBtn.disabled = true;
-        elements.submitBtn.textContent = 'Generation en cours...';
+        elements.submitBtn.textContent = 'Génération en cours...';
 
         try {
             for (let index = 0; index < chunks.length; index += 1) {
@@ -353,10 +353,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             elements.generatedResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showStatusMessage('Bon de commande genere avec succes', 'success');
+            showStatusMessage('Le bon de commande a été généré avec succès.', 'success');
         } finally {
             elements.submitBtn.disabled = false;
-            elements.submitBtn.textContent = 'Generer bon de commande';
+            elements.submitBtn.textContent = 'Générer bon de commande';
         }
     }
 
