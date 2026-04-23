@@ -39,6 +39,7 @@ const REFERENCE_ITEM_HTML = `
 document.addEventListener('DOMContentLoaded', function() {
     const elements = getElements();
     const state = {
+        isVirtualKeyboardVisible: detectVirtualKeyboardVisibility(),
         lastFocusedItem: null,
         keyboardAnchorInput: null,
         statusTimeoutId: null
@@ -75,6 +76,8 @@ function initializeForm(elements) {
 }
 
 function bindEvents(elements, state) {
+    bindViewportTracking(state);
+
     elements.referencesContainer.addEventListener('pointerdown', function(event) {
         handleQuantityButtonPointerDown(event);
     });
@@ -359,8 +362,7 @@ function handleReferenceContainerClick(event, elements, state) {
         : Math.max(1, currentValue - 1);
 
     quantityInput.value = String(nextValue);
-    quantityInput.focus({ preventScroll: true });
-    quantityInput.select();
+    focusQuantityInput(quantityInput, state);
     state.keyboardAnchorInput = quantityInput;
     updateTotalQuantity(elements);
     saveDraft(elements, state);
@@ -598,6 +600,46 @@ function isKeyboardRelevantInput(element) {
         element.matches &&
         element.matches('.reference, .quantity, .discount')
     );
+}
+
+function bindViewportTracking(state) {
+    const syncVirtualKeyboardState = function() {
+        state.isVirtualKeyboardVisible = detectVirtualKeyboardVisibility();
+    };
+
+    syncVirtualKeyboardState();
+
+    if (!window.visualViewport) {
+        return;
+    }
+
+    window.visualViewport.addEventListener('resize', syncVirtualKeyboardState);
+    window.visualViewport.addEventListener('scroll', syncVirtualKeyboardState);
+}
+
+function detectVirtualKeyboardVisibility() {
+    if (!window.visualViewport) {
+        return isKeyboardRelevantInput(document.activeElement);
+    }
+
+    const viewportHeightDelta = window.innerHeight - window.visualViewport.height;
+    return viewportHeightDelta > 120;
+}
+
+function focusQuantityInput(quantityInput, state) {
+    if (state.isVirtualKeyboardVisible) {
+        quantityInput.focus({ preventScroll: true });
+        quantityInput.select();
+        return;
+    }
+
+    const wasReadOnly = quantityInput.readOnly;
+    quantityInput.readOnly = true;
+    quantityInput.focus({ preventScroll: true });
+
+    window.setTimeout(function() {
+        quantityInput.readOnly = wasReadOnly;
+    }, 0);
 }
 
 function escapeHtml(value) {
