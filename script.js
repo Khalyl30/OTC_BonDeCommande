@@ -30,7 +30,7 @@ const REFERENCE_ITEM_HTML = `
     <input type="text" class="reference" placeholder="Référence">
     <div class="quantity-control">
         <button type="button" class="quantity-btn decrement" aria-label="Diminuer la quantité">-</button>
-        <input type="number" class="quantity" min="1" value="1" inputmode="numeric">
+        <input type="number" class="quantity" min="1" value="1" inputmode="numeric" readonly aria-readonly="true">
         <button type="button" class="quantity-btn increment" aria-label="Augmenter la quantité">+</button>
     </div>
     <input type="text" class="discount" placeholder="Remise">
@@ -81,6 +81,22 @@ function bindEvents(elements, state) {
     elements.referencesContainer.addEventListener('pointerdown', function(event) {
         handleQuantityButtonPointerDown(event);
     });
+
+    elements.referencesContainer.addEventListener('beforeinput', function(event) {
+        handleQuantityBeforeInput(event);
+    });
+
+    elements.referencesContainer.addEventListener('keydown', function(event) {
+        handleQuantityKeyDown(event);
+    });
+
+    elements.referencesContainer.addEventListener('paste', function(event) {
+        handleQuantityPaste(event);
+    });
+
+    elements.referencesContainer.addEventListener('wheel', function(event) {
+        handleQuantityWheel(event);
+    }, { passive: false });
 
     elements.referencesContainer.addEventListener('click', function(event) {
         handleReferenceContainerClick(event, elements, state);
@@ -343,6 +359,38 @@ function handleFocusOut(event, state) {
 
 function handleQuantityButtonPointerDown(event) {
     if (!event.target.closest('.quantity-btn')) {
+        return;
+    }
+
+    event.preventDefault();
+}
+
+function handleQuantityBeforeInput(event) {
+    if (!event.target.classList.contains('quantity')) {
+        return;
+    }
+
+    event.preventDefault();
+}
+
+function handleQuantityKeyDown(event) {
+    if (!event.target.classList.contains('quantity')) {
+        return;
+    }
+
+    event.preventDefault();
+}
+
+function handleQuantityPaste(event) {
+    if (!event.target.classList.contains('quantity')) {
+        return;
+    }
+
+    event.preventDefault();
+}
+
+function handleQuantityWheel(event) {
+    if (!event.target.classList.contains('quantity')) {
         return;
     }
 
