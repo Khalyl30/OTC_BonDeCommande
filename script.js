@@ -359,12 +359,11 @@ function handleReferenceContainerClick(event, elements, state) {
         : Math.max(1, currentValue - 1);
 
     quantityInput.value = String(nextValue);
+    quantityInput.focus({ preventScroll: true });
+    quantityInput.select();
+    state.keyboardAnchorInput = quantityInput;
     updateTotalQuantity(elements);
     saveDraft(elements, state);
-
-    if (state.keyboardAnchorInput && document.body.contains(state.keyboardAnchorInput)) {
-        state.keyboardAnchorInput.focus({ preventScroll: true });
-    }
 }
 
 function handleAddReference(elements, state) {
