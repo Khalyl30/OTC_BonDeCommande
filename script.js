@@ -33,7 +33,7 @@ const REFERENCE_ITEM_HTML = `
         <input type="number" class="quantity" min="1" value="1" inputmode="numeric" readonly aria-readonly="true">
         <button type="button" class="quantity-btn increment" aria-label="Augmenter la quantité">+</button>
     </div>
-    <input type="text" class="discount" placeholder="Remise">
+    <input type="text" class="discount" placeholder="Remise / Note">
 `;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -247,7 +247,7 @@ function restoreDraft(elements) {
 
             fields.reference.value = toUpperCaseValue(savedItem.reference || '');
             fields.quantity.value = String(sanitizeQuantityValue(savedItem.quantity));
-            fields.discount.value = toTitleCase(savedItem.discount || '');
+            fields.discount.value = toSentenceCase(savedItem.discount || '');
 
             elements.referencesContainer.appendChild(referenceItem);
         });
@@ -317,7 +317,7 @@ function handleFormInput(event, elements, state) {
     }
 
     if (target.classList.contains('discount')) {
-        target.value = toTitleCase(target.value);
+        target.value = toSentenceCase(target.value);
     }
 
     if (target.classList.contains('quantity')) {
@@ -575,7 +575,7 @@ function buildDocumentTable(items) {
             <tr style="border: 1px solid black; height: 38px;">
                 <th style="${headerStyle}">Référence</th>
                 <th style="${headerStyle}">Quantité</th>
-                <th style="${headerStyle}">Remise</th>
+                <th style="${headerStyle}">Remise / Note</th>
             </tr>
         `
     ];
@@ -635,6 +635,16 @@ function toTitleCase(value) {
 
 function toUpperCaseValue(value) {
     return value.toLocaleUpperCase('fr-FR');
+}
+
+function toSentenceCase(value) {
+    const normalizedValue = String(value || '').toLocaleLowerCase('fr-FR');
+
+    if (!normalizedValue) {
+        return '';
+    }
+
+    return normalizedValue.charAt(0).toLocaleUpperCase('fr-FR') + normalizedValue.slice(1);
 }
 
 function sanitizeQuantityValue(value) {
